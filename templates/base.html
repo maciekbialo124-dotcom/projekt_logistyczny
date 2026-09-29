@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LogiFlow{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800">
+    <header class="bg-slate-900 text-white shadow">
+        <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.2em] text-blue-300">Prototyp stypendialny</p>
+                <h1 class="text-2xl font-semibold">LogiFlow</h1>
+                <p class="text-sm text-slate-300">
+                    {% if current_user and current_user.role == 'kierowca' %}
+                        Panel kierowcy · {{ current_user.username }}
+                    {% elif current_user %}
+                        Menedżer · {{ current_user.username }}
+                    {% else %}
+                        Zintegrowany system magazyn + transport
+                    {% endif %}
+                </p>
+            </div>
+            <nav class="flex flex-wrap gap-2">
+                {% if current_user and current_user.role == 'menedzer' %}
+                <a href="{{ url_for('panel') }}"
+                   class="rounded-full px-4 py-2 text-sm font-medium {% if request.endpoint == 'panel' %}bg-blue-600 text-white{% else %}bg-slate-800 text-slate-200 hover:bg-slate-700{% endif %}">
+                    Panel Główny
+                </a>
+                <a href="{{ url_for('magazyn') }}"
+                   class="rounded-full px-4 py-2 text-sm font-medium {% if request.endpoint == 'magazyn' %}bg-blue-600 text-white{% else %}bg-slate-800 text-slate-200 hover:bg-slate-700{% endif %}">
+                    Magazyn
+                </a>
+                <a href="{{ url_for('flota') }}"
+                   class="rounded-full px-4 py-2 text-sm font-medium {% if request.endpoint == 'flota' %}bg-blue-600 text-white{% else %}bg-slate-800 text-slate-200 hover:bg-slate-700{% endif %}">
+                    Flota / Transport
+                </a>
+                <a href="{{ url_for('zlecenia') }}"
+                   class="rounded-full px-4 py-2 text-sm font-medium {% if request.endpoint == 'zlecenia' %}bg-blue-600 text-white{% else %}bg-slate-800 text-slate-200 hover:bg-slate-700{% endif %}">
+                    Zlecenia
+                </a>
+                {% elif current_user %}
+                <a href="{{ url_for('kierowca') }}"
+                   class="rounded-full px-4 py-2 text-sm font-medium {% if request.endpoint == 'kierowca' %}bg-blue-600 text-white{% else %}bg-slate-800 text-slate-200 hover:bg-slate-700{% endif %}">
+                    Moje zlecenia
+                </a>
+                {% endif %}
+                {% if current_user %}
+                <a href="{{ url_for('skaner') }}"
+                   class="rounded-full px-4 py-2 text-sm font-medium {% if request.endpoint == 'skaner' %}bg-blue-600 text-white{% else %}bg-slate-800 text-slate-200 hover:bg-slate-700{% endif %}">
+                    Skaner QR
+                </a>
+                <a href="{{ url_for('logout') }}"
+                   class="rounded-full bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700">
+                    Wyloguj
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for category, message in messages %}
+                        <div class="rounded-lg border px-4 py-3 text-sm
+                            {% if category == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-800
+                            {% else %}border-rose-200 bg-rose-50 text-rose-800{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Magazyn · LogiFlow{% endblock %}
+{% block content %}
+<section class="grid gap-6 lg:grid-cols-3">
+    <div class="lg:col-span-2">
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Stan magazynu</h2>
+                <p class="text-sm text-slate-500">Produkty dostępne do kompletacji i wysyłki.</p>
+            </div>
+            <form method="get" action="{{ url_for('magazyn') }}" class="flex w-full gap-2 sm:w-auto">
+                <input type="search" name="q" value="{{ query }}"
+                       placeholder="Szukaj po nazwie..."
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-64">
+                <button type="submit"
+                        class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                    Szukaj
+                </button>
+                {% if query %}
+                <a href="{{ url_for('magazyn') }}"
+                   class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                    Wyczyść
+                </a>
+                {% endif %}
+            </form>
+        </div>
+        {% if query %}
+        <p class="mb-3 text-sm text-slate-500">Wyniki dla: <span class="font-medium text-slate-800">{{ query }}</span></p>
+        {% endif %}
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table class="min-w-full text-left text-sm">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3">Nazwa</th>
+                        <th class="px-4 py-3">Ilość</th>
+                        <th class="px-4 py-3">Limit alarmowy</th>
+                        <th class="px-4 py-3">Lokalizacja</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for product in products %}
+                    <tr class="{% if product.quantity == 0 %}bg-rose-100{% elif product.quantity < product.min_quantity %}bg-amber-100{% else %}hover:bg-slate-50{% endif %}">
+                        <td class="px-4 py-3 font-medium text-slate-900">{{ product.name }}</td>
+                        <td class="px-4 py-3">
+                            {{ product.quantity }}
+                            {% if product.quantity == 0 %}
+                            <span class="ml-2 text-xs font-semibold text-rose-700">brak</span>
+                            {% elif product.quantity < product.min_quantity %}
+                            <span class="ml-2 text-xs font-semibold text-amber-800">poniżej limitu</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">{{ product.min_quantity }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ product.location }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-slate-500">
+                            {% if query %}Brak produktów pasujących do wyszukiwania.{% else %}Brak produktów. Dodaj pierwszą pozycję.{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <aside class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="text-lg font-semibold text-slate-900">Dodaj produkt</h3>
+        <p class="mb-4 text-sm text-slate-500">Nowa pozycja trafi od razu do tabeli magazynu.</p>
+        <form method="post" class="space-y-4">
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="name">Nazwa</label>
+                <input id="name" name="name" required
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                       placeholder="np. Palety EURO">
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="quantity">Ilość</label>
+                <input id="quantity" name="quantity" type="number" min="0" required
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                       placeholder="0">
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="min_quantity">Minimalna ilość (alert)</label>
+                <input id="min_quantity" name="min_quantity" type="number" min="0" value="20" required
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="location">Lokalizacja</label>
+                <input id="location" name="location" required
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                       placeholder="np. Hala A / Rząd 3">
+            </div>
+            <button type="submit"
+                    class="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+                Dodaj do magazynu
+            </button>
+        </form>
+    </aside>
+</section>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Zlecenia · LogiFlow{% endblock %}
+{% block content %}
+<section class="grid gap-6 lg:grid-cols-3">
+    <aside class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-slate-900">Nowe zlecenie</h2>
+        <p class="mb-4 text-sm text-slate-500">
+            Spalanie {{ fuel_l }} l/100 km · paliwo {{ "%.2f"|format(fuel_price) }} zł/l · średnia {{ avg_speed }} km/h.
+        </p>
+        <form method="post" class="space-y-4">
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="product_id">Produkt</label>
+                <select id="product_id" name="product_id" required
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    <option value="">Wybierz produkt</option>
+                    {% for product in products %}
+                    <option value="{{ product.id }}">{{ product.name }} (dostępne: {{ product.quantity }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="quantity">Ilość</label>
+                <input id="quantity" name="quantity" type="number" min="1" required
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                       placeholder="np. 10">
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="vehicle_id">Pojazd</label>
+                <select id="vehicle_id" name="vehicle_id" required
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    <option value="">Wybierz pojazd</option>
+                    {% for vehicle in vehicles %}
+                    <option value="{{ vehicle.id }}">{{ vehicle.brand_model }} · {{ vehicle.registration }} ({{ vehicle.status }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="driver_id">Kierowca</label>
+                <select id="driver_id" name="driver_id"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    <option value="">Automatycznie (pojazd kierowcy)</option>
+                    {% for driver in drivers %}
+                    <option value="{{ driver.id }}">{{ driver.username }}{% if driver.registration %} · {{ driver.registration }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="destination">Cel dostawy</label>
+                <select id="destination" name="destination" required
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    {% for dest in destinations %}
+                    <option value="{{ dest.name }}">{{ dest.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium" for="distance_km">Odległość w km</label>
+                <input id="distance_km" name="distance_km" type="number" min="1" step="0.1" required
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                       placeholder="np. 350">
+                <p id="calcHint" class="mt-1 text-xs text-slate-500">Podaj kilometry, a system policzy koszt paliwa i ETA.</p>
+            </div>
+            <button type="submit"
+                    class="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+                Utwórz zlecenie
+            </button>
+        </form>
+    </aside>
+
+    <div class="lg:col-span-2">
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold text-slate-900">Lista zleceń</h2>
+            <p class="text-sm text-slate-500">Szczegóły, mapa i PDF są w karcie zlecenia.</p>
+        </div>
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table class="min-w-full text-left text-sm">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3">Nr</th>
+                        <th class="px-4 py-3">Towar</th>
+                        <th class="px-4 py-3">Cel</th>
+                        <th class="px-4 py-3">Koszt / ETA</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for order in orders %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 font-medium text-slate-900">#{{ order.id }}</td>
+                        <td class="px-4 py-3">
+                            {{ order.product_name }} · {{ order.quantity }}
+                            <span class="block text-xs text-slate-500">{{ order.vehicle_name }} · {{ order.registration }}</span>
+                            <span class="block text-xs text-slate-500">{{ order.driver_name or "brak kierowcy" }}</span>
+                        </td>
+                        <td class="px-4 py-3">{{ order.destination }}<span class="block text-xs text-slate-500">{{ order.distance_km }} km</span></td>
+                        <td class="px-4 py-3">
+                            {{ "%.2f"|format(order.fuel_cost) }} zł
+                            <span class="block text-xs text-slate-500">{{ format_eta(order.eta_minutes) }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if order.status == "Dostarczone" %}
+                            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Dostarczone</span>
+                            {% else %}
+                            <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">W realizacji</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <a href="{{ url_for('zlecenie_szczegoly', order_id=order.id) }}" class="text-sm font-semibold text-blue-700 hover:underline">Szczegóły</a>
+                            <a href="{{ url_for('zlecenie_pdf', order_id=order.id) }}" class="mt-1 block text-xs font-semibold text-slate-700 hover:underline">Pobierz PDF</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">Nie utworzono jeszcze żadnego zlecenia.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+    const input = document.getElementById("distance_km");
+    const hint = document.getElementById("calcHint");
+    const lPer100 = {{ fuel_l }};
+    const price = {{ fuel_price }};
+    const speed = {{ avg_speed }};
+    input.addEventListener("input", () => {
+        const km = parseFloat(input.value.replace(",", "."));
+        if (!km || km <= 0) {
+            hint.textContent = "Podaj kilometry, a system policzy koszt paliwa i ETA.";
+            return;
+        }
+        const cost = (km * (lPer100 / 100) * price).toFixed(2);
+        const minutes = Math.round((km / speed) * 60);
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        hint.textContent = `Szacunek: ${cost} zł paliwa, ETA ${h} godz. ${m} min (zapisze się po utworzeniu).`;
+    });
+</script>
+{% endblock %}

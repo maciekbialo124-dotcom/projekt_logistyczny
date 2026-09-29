@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Zlecenie #{{ order.id }} · LogiFlow{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+    #routeMap { height: 320px; width: 100%; border-radius: 1rem; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+    <div>
+        <h2 class="text-xl font-semibold text-slate-900">Zlecenie #{{ order.id }}</h2>
+        <p class="text-sm text-slate-500">{{ order.created_at }} · {{ order.status }}</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <a href="{{ url_for('zlecenie_pdf', order_id=order.id) }}"
+           class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Pobierz PDF</a>
+        {% if current_user.role == 'kierowca' and order.status != 'Dostarczone' %}
+        <form method="post" action="{{ url_for('oznacz_dostarczone', order_id=order.id) }}">
+            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                Oznacz jako dostarczone
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<section class="mb-6 grid gap-6 lg:grid-cols-3">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+        <h3 class="mb-4 text-lg font-semibold">Trasa dostawy</h3>
+        <div id="routeMap"></div>
+        <p class="mt-3 text-sm text-slate-500">{{ warehouse_name }} → {{ order.destination }} ({{ order.distance_km }} km)</p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="mb-3 text-lg font-semibold">Kod QR zlecenia</h3>
+        <div id="orderQr" class="flex justify-center"></div>
+        <p class="mt-3 text-center text-xs text-slate-500">Zeskanuj ID <span class="font-mono">{{ order.id }}</span> w module Skaner QR.</p>
+        <dl class="mt-4 space-y-2 text-sm">
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">Towar</dt><dd class="font-medium">{{ order.product_name }} × {{ order.quantity }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">Pojazd</dt><dd class="text-right font-medium">{{ order.vehicle_name }}<br><span class="font-mono text-xs">{{ order.registration }}</span></dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">Kierowca</dt><dd class="font-medium">{{ order.driver_name or "—" }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">Paliwo</dt><dd class="font-medium">{{ "%.2f"|format(order.fuel_cost) }} zł</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">ETA</dt><dd class="font-medium">{{ format_eta(order.eta_minutes) }}</dd></div>
+        </dl>
+    </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+    new QRCode(document.getElementById("orderQr"), {
+        text: "{{ order.id }}",
+        width: 140,
+        height: 140
+    });
+    const start = [{{ warehouse_lat }}, {{ warehouse_lng }}];
+    const end = [{{ order.dest_lat }}, {{ order.dest_lng }}];
+    const map = L.map("routeMap");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+    L.marker(start).addTo(map).bindPopup({{ warehouse_name | tojson }});
+    L.marker(end).addTo(map).bindPopup({{ order.destination | tojson }});
+    const line = L.polyline([start, end], { color: "#2563eb", weight: 4 }).addTo(map);
+    map.fitBounds(line.getBounds(), { padding: [30, 30] });
+</script>
+{% endblock %}
